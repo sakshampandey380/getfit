@@ -1,0 +1,189 @@
+/* ==========================================================================
+   FITQUEST RESPONSIVE & MOBILE-FIRST OPTIMIZATIONS
+   Breakpoints, touch-ergonomics, bottom nav switching, safe area insets
+   ========================================================================== */
+
+/* Tablet Breakpoint (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .main-container {
+    padding: 1.25rem;
+  }
+}
+
+/* Mobile Breakpoint (max-width: 768px) */
+@media (max-width: 768px) {
+  :root {
+    --header-height: 64px;
+    --bottom-nav-height: 66px;
+  }
+
+  /* Switch Navigation: Hide desktop links, display mobile bottom bar */
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .bottom-nav {
+    display: flex !important;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .main-container {
+    padding: 1rem 0.85rem;
+    padding-bottom: calc(var(--bottom-nav-height) + 1.5rem);
+  }
+
+  /* Header Compact */
+  .app-header {
+    padding: 0 1rem;
+  }
+
+  .brand-name {
+    font-size: 1.1rem;
+  }
+
+  .brand-tagline {
+    display: none;
+  }
+
+  .header-stats .stat-pill span.stat-label {
+    display: none;
+  }
+
+  /* Hero Section Mobile */
+  .hero-title {
+    font-size: 2.25rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .hero-cta-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-cta-group .btn-3d {
+    width: 100%;
+  }
+
+  /* Onboarding Wizard Mobile */
+  .wizard-steps-indicator {
+    margin-bottom: 1.25rem;
+  }
+
+  .step-label {
+    display: none;
+  }
+
+  .choice-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .choice-card {
+    padding: 1rem 0.75rem;
+  }
+
+  .choice-icon {
+    font-size: 1.6rem;
+  }
+
+  .choice-title {
+    font-size: 0.85rem;
+  }
+
+  .choice-subtitle {
+    font-size: 0.72rem;
+  }
+
+  /* Workout Runner Mobile */
+  .active-workout-container {
+    padding: 0.5rem 0;
+  }
+
+  .active-runner-card {
+    padding: 1.25rem 1rem;
+  }
+
+  .runner-exercise-name {
+    font-size: 1.45rem;
+  }
+
+  .runner-illustration-box {
+    width: 140px;
+    height: 140px;
+    font-size: 3.8rem;
+  }
+
+  .runner-stats-row {
+    gap: 1rem;
+  }
+
+  .runner-stat-value {
+    font-size: 1.2rem;
+  }
+
+  /* Exercise Grid Mobile */
+  .exercise-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Modal Mobile */
+  .modal-card-3d {
+    padding: 1.5rem 1.25rem;
+    max-height: 85vh;
+    border-radius: var(--radius-xl);
+  }
+
+  /* Achievements Grid Mobile */
+  .achievements-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .achievement-card {
+    padding: 1.25rem 0.75rem;
+  }
+
+  .achievement-icon {
+    width: 52px;
+    height: 52px;
+    font-size: 1.6rem;
+  }
+
+  /* Toasts Mobile Positioning */
+  #toast-container {
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(var(--bottom-nav-height) + 1rem);
+  }
+
+  .toast-item {
+    min-width: unset;
+    width: 100%;
+  }
+
+  /* Disable extreme 3D tilts on mobile touch devices to ensure silky performance */
+  .tilt-card {
+    transform: none !important;
+  }
+}
+
+/* Extra Small Phones (max-width: 380px) */
+@media (max-width: 380px) {
+  .choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .achievements-grid {
+    grid-template-columns: 1fr;
+  }
+}
