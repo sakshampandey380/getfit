@@ -186,4 +186,32 @@
   .achievements-grid {
     grid-template-columns: 1fr;
   }
+
+  .bottom-nav {
+    padding: 0 0.15rem;
+  }
+
+  .bottom-nav-item {
+    padding: 0.2rem 0.05rem;
+    font-size: 0.62rem;
+  }
+
+  .bottom-nav-item span.nav-icon {
+    font-size: 1.12rem;
+  }
+
+  .lifting-stage {
+    width: 230px;
+    height: 190px;
+    margin-bottom: 1rem;
+  }
+
+  .transition-headline {
+    font-size: 1.05rem;
+  }
+
+  .transition-progress-bar {
+    width: 180px;
+  }
 }
+

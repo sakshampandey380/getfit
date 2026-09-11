@@ -7,6 +7,67 @@ import { Sound } from './audio.js';
 import { AppState } from './state.js';
 import { Auth } from './auth.js';
 
+export const PageTransition = {
+  overlay: null,
+  labelEl: null,
+  statusEl: null,
+  isTransitioning: false,
+  titles: {
+    'dashboard': 'Home Dashboard',
+    'height': 'Height & Posture Hub',
+    'library': 'Exercise Library',
+    'quests': 'Daily Quests',
+    'diet': 'Nutrition & Diet',
+    'achievements': 'Trophies & Badges',
+    'progress': 'Progress Analytics',
+    'profile': 'Athlete Profile',
+    'auth': 'Athlete Portal',
+    'landing': 'Welcome to FitQuest',
+    'onboarding': 'Fitness Setup',
+    'active-runner': 'Active Workout Session'
+  },
+
+  init() {
+    this.overlay = document.getElementById('page-transition-overlay');
+    this.labelEl = document.getElementById('transition-target-label');
+    this.statusEl = document.getElementById('transition-status-text');
+  },
+
+  play(targetScreenKey, onSwitchCallback) {
+    if (!this.overlay) this.init();
+    if (!this.overlay) {
+      if (onSwitchCallback) onSwitchCallback();
+      return;
+    }
+
+    const shortKey = targetScreenKey.replace('screen-', '');
+    const title = this.titles[shortKey] || 'FitQuest Arena';
+
+    if (this.labelEl) this.labelEl.textContent = title.toUpperCase();
+    if (this.statusEl) this.statusEl.textContent = `LIFTING TO ${title.toUpperCase()}...`;
+
+    // Force restart animation keyframes
+    this.overlay.classList.remove('active', 'animate-in', 'animate-out');
+    void this.overlay.offsetWidth; // Trigger reflow
+    this.overlay.classList.add('active', 'animate-in');
+    this.isTransitioning = true;
+
+    // Mid-lift switch: swap screen contents behind the overlay
+    setTimeout(() => {
+      if (onSwitchCallback) onSwitchCallback();
+    }, 750);
+
+    // Complete overhead lockout & smoothly open destination screen
+    setTimeout(() => {
+      this.overlay.classList.add('animate-out');
+      setTimeout(() => {
+        this.overlay.classList.remove('active', 'animate-in', 'animate-out');
+        this.isTransitioning = false;
+      }, 350);
+    }, 1450);
+  }
+};
+
 export const Navigation = {
   currentScreenId: 'screen-landing',
   screens: [
@@ -25,6 +86,8 @@ export const Navigation = {
   ],
 
   init() {
+    PageTransition.init();
+
     // Bind all data-nav-target elements
     document.addEventListener('click', (e) => {
       const trigger = e.target.closest('[data-nav]');
@@ -39,7 +102,7 @@ export const Navigation = {
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
       if (hash && this.screens.includes(`screen-${hash}`)) {
-        this.showScreen(`screen-${hash}`, false);
+        this.showScreen(`screen-${hash}`, false, true);
       }
     });
   },
@@ -51,13 +114,13 @@ export const Navigation = {
     if (screenKey === 'demo') {
       Sound.playClick();
       Auth.loginDemo();
-      this.showScreen('screen-dashboard', true);
+      this.showScreen('screen-dashboard', true, true);
       return;
     }
 
     if (screenKey === 'signup') {
       Sound.playClick();
-      this.showScreen('screen-auth', true);
+      this.showScreen('screen-auth', true, true);
       const loginWrap = document.getElementById('auth-login-wrap');
       const signupWrap = document.getElementById('auth-signup-wrap');
       if (loginWrap) loginWrap.style.display = 'none';
@@ -67,7 +130,7 @@ export const Navigation = {
 
     if (screenKey === 'login') {
       Sound.playClick();
-      this.showScreen('screen-auth', true);
+      this.showScreen('screen-auth', true, true);
       const loginWrap = document.getElementById('auth-login-wrap');
       const signupWrap = document.getElementById('auth-signup-wrap');
       if (signupWrap) signupWrap.style.display = 'none';
@@ -80,12 +143,12 @@ export const Navigation = {
 
     // Route guards
     if (this.requiresAuth(screenId) && !AppState.isLoggedIn()) {
-      this.showScreen('screen-auth', true);
+      this.showScreen('screen-auth', true, true);
       return;
     }
 
     Sound.playClick();
-    this.showScreen(screenId, true);
+    this.showScreen(screenId, true, true);
   },
 
   requiresAuth(screenId) {
@@ -93,30 +156,38 @@ export const Navigation = {
     return !publicScreens.includes(screenId);
   },
 
-  showScreen(targetId, updateHash = true) {
+  showScreen(targetId, updateHash = true, animate = true) {
     const targetEl = document.getElementById(targetId);
     if (!targetEl) return;
 
-    // Remove active from current screens
-    document.querySelectorAll('.app-screen').forEach(scr => {
-      scr.classList.remove('active');
-    });
+    const performScreenSwitch = () => {
+      // Remove active from current screens
+      document.querySelectorAll('.app-screen').forEach(scr => {
+        scr.classList.remove('active');
+      });
 
-    // Activate target
-    targetEl.classList.add('active');
-    this.currentScreenId = targetId;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Activate target
+      targetEl.classList.add('active');
+      this.currentScreenId = targetId;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    if (updateHash) {
-      const shortRoute = targetId.replace('screen-', '');
-      history.pushState(null, '', `#${shortRoute}`);
+      if (updateHash) {
+        const shortRoute = targetId.replace('screen-', '');
+        history.pushState(null, '', `#${shortRoute}`);
+      }
+
+      // Sync Navigation Bars
+      this.syncNavLinks(targetId);
+
+      // Trigger custom route event
+      window.dispatchEvent(new CustomEvent('fitquest:screenChanged', { detail: { screenId: targetId } }));
+    };
+
+    if (animate) {
+      PageTransition.play(targetId, performScreenSwitch);
+    } else {
+      performScreenSwitch();
     }
-
-    // Sync Navigation Bars
-    this.syncNavLinks(targetId);
-
-    // Trigger custom route event
-    window.dispatchEvent(new CustomEvent('fitquest:screenChanged', { detail: { screenId: targetId } }));
   },
 
   syncNavLinks(screenId) {

@@ -12,8 +12,9 @@
   height: 100vh;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.75;
+  opacity: 0.95;
   transition: opacity var(--transition-smooth);
+  will-change: transform;
 }
 
 /* Perspective Root Containers */

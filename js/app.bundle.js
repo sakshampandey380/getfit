@@ -355,18 +355,20 @@
     animId: null,
     particles: [],
     shapes: [],
+    athletes: [],
     mouse: { x: 0, y: 0, targetX: 0, targetY: 0 },
     enabled: true,
-  
+    lastTime: 0,
+
     init(canvasId = 'ambient-canvas-3d') {
       this.canvas = document.getElementById(canvasId);
       if (!this.canvas) return;
       this.ctx = this.canvas.getContext('2d');
       if (!this.ctx) return;
-  
+
       this.resize();
       window.addEventListener('resize', () => this.resize(), { passive: true });
-  
+
       // Pointer move listener for parallax
       window.addEventListener('pointermove', (e) => {
         const halfW = window.innerWidth / 2;
@@ -374,119 +376,589 @@
         this.mouse.targetX = (e.clientX - halfW) / halfW;
         this.mouse.targetY = (e.clientY - halfH) / halfH;
       }, { passive: true });
-  
+
       // Page visibility to pause when inactive
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
           if (this.animId) cancelAnimationFrame(this.animId);
         } else {
-          this.loop();
+          this.lastTime = performance.now();
+          this.loop(this.lastTime);
         }
       });
-  
+
       this.initShapes();
+      this.initAthletes();
       this.initTiltCards();
-      this.loop();
+      this.lastTime = performance.now();
+      this.loop(this.lastTime);
     },
-  
+
     resize() {
       if (!this.canvas) return;
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
     },
-  
+
     initShapes() {
       this.shapes = [];
-      const count = window.innerWidth < 768 ? 12 : 24;
-      const colors = [
-        'rgba(14, 165, 233, 0.25)',  // cyan
-        'rgba(16, 185, 129, 0.22)',  // emerald
-        'rgba(139, 92, 246, 0.20)',  // purple
-        'rgba(249, 115, 22, 0.18)'   // orange
+      const isMobile = window.innerWidth < 768;
+      const count = isMobile ? 12 : 22;
+
+      const gymColors = [
+        { primary: 'rgba(14, 165, 233, ', glow: '#0EA5E9' },  // Neon Cyan
+        { primary: 'rgba(16, 185, 129, ', glow: '#10B981' },  // Emerald
+        { primary: 'rgba(249, 115, 22, ', glow: '#F97316' },  // Forge Orange
+        { primary: 'rgba(168, 85, 247, ', glow: '#A855F7' },  // Mystic Purple
+        { primary: 'rgba(244, 63, 94, ',  glow: '#F43F5E' },  // Crimson Fire
+        { primary: 'rgba(234, 179, 8, ',  glow: '#EAB308' }   // Gold
       ];
-  
+
       for (let i = 0; i < count; i++) {
+        const randType = Math.random();
+        let type = 'dumbbell';
+        if (randType > 0.85) type = 'kettlebell';
+        else if (randType > 0.70) type = 'plate';
+
+        const colorObj = gymColors[i % gymColors.length];
+        const baseOpacity = isMobile ? (Math.random() * 0.15 + 0.22) : (Math.random() * 0.18 + 0.25);
+
         this.shapes.push({
+          type,
           x: Math.random() * window.innerWidth,
           y: Math.random() * window.innerHeight,
-          z: Math.random() * 500 + 100, // depth
-          size: Math.random() * 24 + 10,
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.4,
-          rotX: Math.random() * Math.PI,
-          rotY: Math.random() * Math.PI,
-          vRotX: (Math.random() - 0.5) * 0.015,
-          vRotY: (Math.random() - 0.5) * 0.015,
-          color: colors[i % colors.length],
-          type: i % 3 // 0: cube/prism, 1: ring, 2: soft sphere
+          z: Math.random() * 400 + 80,
+          size: type === 'dumbbell' ? (Math.random() * 16 + 22) : (Math.random() * 14 + 20),
+          vx: (Math.random() - 0.5) * 0.45,
+          vy: (Math.random() - 0.5) * 0.45,
+          rotX: Math.random() * Math.PI * 2,
+          rotY: Math.random() * Math.PI * 2,
+          rotZ: Math.random() * Math.PI * 2,
+          vRotX: (Math.random() - 0.5) * 0.018,
+          vRotY: (Math.random() - 0.5) * 0.018,
+          vRotZ: (Math.random() - 0.5) * 0.015,
+          colorObj,
+          baseOpacity,
+          plateShape: Math.random() > 0.4 ? 'hex' : 'round'
         });
       }
     },
-  
-    loop() {
+
+    initAthletes() {
+      this.athletes = [];
+      const isMobile = window.innerWidth < 768;
+      const count = isMobile ? 2 : 4;
+      const exercises = ['press', 'curl', 'squat', 'deadlift'];
+
+      const colors = [
+        'rgba(14, 165, 233, ',
+        'rgba(16, 185, 129, ',
+        'rgba(249, 115, 22, ',
+        'rgba(168, 85, 247, '
+      ];
+
+      const screenW = window.innerWidth || 1200;
+      const screenH = window.innerHeight || 800;
+
+      for (let i = 0; i < count; i++) {
+        let posX = (screenW / (count + 1)) * (i + 1) + (Math.random() - 0.5) * 100;
+        let posY = (screenH * 0.35) + (i % 2 === 0 ? -80 : 100) + (Math.random() - 0.5) * 80;
+
+        this.athletes.push({
+          x: posX,
+          y: posY,
+          z: Math.random() * 200 + 150,
+          scale: isMobile ? (Math.random() * 0.15 + 0.65) : (Math.random() * 0.2 + 0.95),
+          vx: (Math.random() - 0.5) * 0.15,
+          vy: (Math.random() - 0.5) * 0.1,
+          exercise: exercises[i % exercises.length],
+          phase: Math.random() * Math.PI * 2,
+          speed: Math.random() * 0.018 + 0.022,
+          colorPrefix: colors[i % colors.length],
+          opacity: isMobile ? 0.22 : 0.28
+        });
+      }
+    },
+
+    loop(currentTime = performance.now()) {
       if (!this.enabled || !this.ctx) return;
-  
-      // Smooth mouse interpolation
+
+      const dt = Math.min((currentTime - this.lastTime) / 1000, 0.1);
+      this.lastTime = currentTime;
+
+      // Smooth mouse interpolation for 3D parallax
       this.mouse.x += (this.mouse.targetX - this.mouse.x) * 0.05;
       this.mouse.y += (this.mouse.targetY - this.mouse.y) * 0.05;
-  
+
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-  
-      const fov = 600;
-      const centerX = this.canvas.width / 2 + this.mouse.x * 30;
-      const centerY = this.canvas.height / 2 + this.mouse.y * 30;
-  
+
+      const fov = 550;
+      const centerX = this.canvas.width / 2 + this.mouse.x * 40;
+      const centerY = this.canvas.height / 2 + this.mouse.y * 40;
+
+      // 1. Render Animated Athletes Training in Background
+      for (const a of this.athletes) {
+        a.x += a.vx;
+        a.y += a.vy;
+        a.phase += a.speed;
+
+        const margin = 120;
+        if (a.x < -margin) a.x = this.canvas.width + margin;
+        if (a.x > this.canvas.width + margin) a.x = -margin;
+        if (a.y < -margin) a.y = this.canvas.height + margin;
+        if (a.y > this.canvas.height + margin) a.y = -margin;
+
+        const scale = fov / (fov + a.z);
+        const projX = (a.x - centerX) * scale + centerX;
+        const projY = (a.y - centerY) * scale + centerY;
+        const finalScale = a.scale * scale;
+
+        this.drawAthlete(projX, projY, finalScale, a);
+      }
+
+      // 2. Render Floating 3D Dumbbells & Equipment
       for (const s of this.shapes) {
         s.x += s.vx;
         s.y += s.vy;
         s.rotX += s.vRotX;
         s.rotY += s.vRotY;
-  
-        // Wrap around bounds
-        if (s.x < -50) s.x = this.canvas.width + 50;
-        if (s.x > this.canvas.width + 50) s.x = -50;
-        if (s.y < -50) s.y = this.canvas.height + 50;
-        if (s.y > this.canvas.height + 50) s.y = -50;
-  
-        // 3D projection
+        s.rotZ += s.vRotZ;
+
+        const buffer = 70;
+        if (s.x < -buffer) s.x = this.canvas.width + buffer;
+        if (s.x > this.canvas.width + buffer) s.x = -buffer;
+        if (s.y < -buffer) s.y = this.canvas.height + buffer;
+        if (s.y > this.canvas.height + buffer) s.y = -buffer;
+
         const scale = fov / (fov + s.z);
         const projX = (s.x - centerX) * scale + centerX;
         const projY = (s.y - centerY) * scale + centerY;
         const projSize = s.size * scale;
-  
+        const alpha = s.baseOpacity * Math.min(1, scale * 1.2);
+
         this.ctx.save();
         this.ctx.translate(projX, projY);
-        this.ctx.fillStyle = s.color;
-        this.ctx.strokeStyle = s.color;
-        this.ctx.lineWidth = 1.5;
-  
-        if (s.type === 0) {
-          // Rotating Diamond / Polyhedron
-          this.ctx.rotate(s.rotX);
-          this.ctx.beginPath();
-          this.ctx.moveTo(0, -projSize);
-          this.ctx.lineTo(projSize, 0);
-          this.ctx.lineTo(0, projSize);
-          this.ctx.lineTo(-projSize, 0);
-          this.ctx.closePath();
-          this.ctx.stroke();
-        } else if (s.type === 1) {
-          // Rotating Ring
-          this.ctx.scale(1, Math.cos(s.rotY) * 0.8);
-          this.ctx.beginPath();
-          this.ctx.arc(0, 0, projSize, 0, Math.PI * 2);
-          this.ctx.stroke();
+
+        if (s.type === 'dumbbell') {
+          this.draw3DDumbbell(s, projSize, alpha);
+        } else if (s.type === 'plate') {
+          this.draw3DWeightPlate(s, projSize, alpha);
         } else {
-          // Soft glowing particle
-          this.ctx.beginPath();
-          this.ctx.arc(0, 0, projSize * 0.8, 0, Math.PI * 2);
-          this.ctx.fill();
+          this.draw3DKettlebell(s, projSize, alpha);
         }
-  
+
         this.ctx.restore();
       }
-  
-      this.animId = requestAnimationFrame(() => this.loop());
+
+      this.animId = requestAnimationFrame((t) => this.loop(t));
+    },
+
+    draw3DDumbbell(s, size, alpha) {
+      const ctx = this.ctx;
+      ctx.rotate(s.rotZ);
+
+      const tiltX = Math.cos(s.rotX) * 0.65 + 0.35;
+      const tiltY = Math.cos(s.rotY) * 0.65 + 0.35;
+      ctx.scale(tiltY, tiltX);
+
+      const length = size * 2.6;
+      const barThick = Math.max(3, size * 0.18);
+      const plateRadius = size * 0.85;
+      const plateWidth = Math.max(5, size * 0.28);
+      const collarWidth = Math.max(2, size * 0.1);
+
+      const neonColor = s.colorObj.primary + (alpha * 1.1) + ')';
+      const plateFill = 'rgba(30, 41, 59, ' + (alpha * 0.95) + ')';
+      const steelColor = 'rgba(203, 213, 225, ' + (alpha * 0.9) + ')';
+      const knurlColor = 'rgba(100, 116, 139, ' + (alpha * 0.8) + ')';
+
+      ctx.fillStyle = steelColor;
+      ctx.fillRect(-length / 2, -barThick / 2, length, barThick);
+
+      ctx.strokeStyle = knurlColor;
+      ctx.lineWidth = 1;
+      for (let x = -length * 0.25; x <= length * 0.25; x += 4) {
+        ctx.beginPath();
+        ctx.moveTo(x, -barThick / 2);
+        ctx.lineTo(x + 2, barThick / 2);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = 'rgba(148, 163, 184, ' + alpha + ')';
+      ctx.fillRect(-length * 0.32 - collarWidth, -barThick * 0.9, collarWidth, barThick * 1.8);
+      ctx.fillRect(length * 0.32, -barThick * 0.9, collarWidth, barThick * 1.8);
+
+      const drawPlateStack = (baseX, isRight) => {
+        const dir = isRight ? 1 : -1;
+        const p1X = baseX;
+        if (s.plateShape === 'hex') {
+          this.drawHexPlate(ctx, p1X, 0, plateRadius, plateWidth, plateFill, neonColor);
+        } else {
+          this.drawRoundPlate(ctx, p1X, 0, plateRadius, plateWidth, plateFill, neonColor);
+        }
+
+        const p2X = baseX + (dir * (plateWidth + 2));
+        if (s.plateShape === 'hex') {
+          this.drawHexPlate(ctx, p2X, 0, plateRadius * 0.85, plateWidth * 0.85, plateFill, neonColor);
+        } else {
+          this.drawRoundPlate(ctx, p2X, 0, plateRadius * 0.85, plateWidth * 0.85, plateFill, neonColor);
+        }
+
+        ctx.fillStyle = steelColor;
+        ctx.beginPath();
+        ctx.arc(p2X + (dir * plateWidth * 0.8), 0, barThick * 0.65, 0, Math.PI * 2);
+        ctx.fill();
+      };
+
+      drawPlateStack(-length * 0.32 - plateWidth, false);
+      drawPlateStack(length * 0.32, true);
+    },
+
+    drawHexPlate(ctx, x, y, radius, width, fill, stroke) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        const px = Math.cos(angle) * (width / 2);
+        const py = Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        const px = Math.cos(angle) * (width * 0.3);
+        const py = Math.sin(angle) * (radius * 0.65);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.restore();
+    },
+
+    drawRoundPlate(ctx, x, y, radius, width, fill, stroke) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, width / 2, radius, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(0, 0, (width / 2) * 0.7, radius * 0.7, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.restore();
+    },
+
+    draw3DWeightPlate(s, size, alpha) {
+      const ctx = this.ctx;
+      ctx.rotate(s.rotZ);
+      const tilt = Math.cos(s.rotY) * 0.7 + 0.3;
+      ctx.scale(1, tilt);
+
+      const radius = size * 1.3;
+      const neon = s.colorObj.primary + alpha + ')';
+      const darkDisc = 'rgba(15, 23, 42, ' + (alpha * 0.95) + ')';
+
+      ctx.fillStyle = darkDisc;
+      ctx.strokeStyle = neon;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.72, 0, Math.PI * 2);
+      ctx.strokeStyle = neon;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(203, 213, 225, ' + alpha + ')';
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.9)';
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (let i = 0; i < 3; i++) {
+        const angle = (Math.PI * 2 / 3) * i + s.rotX;
+        const gx = Math.cos(angle) * (radius * 0.5);
+        const gy = Math.sin(angle) * (radius * 0.5);
+        ctx.strokeStyle = neon;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(gx, gy, radius * 0.12, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    },
+
+    draw3DKettlebell(s, size, alpha) {
+      const ctx = this.ctx;
+      ctx.rotate(s.rotZ);
+      const tilt = Math.cos(s.rotX) * 0.7 + 0.3;
+      ctx.scale(tilt, 1);
+
+      const radius = size * 0.8;
+      const neon = s.colorObj.primary + alpha + ')';
+      const darkBody = 'rgba(30, 41, 59, ' + (alpha * 0.9) + ')';
+
+      ctx.strokeStyle = 'rgba(203, 213, 225, ' + alpha + ')';
+      ctx.lineWidth = Math.max(3, size * 0.18);
+      ctx.beginPath();
+      ctx.arc(0, -radius * 0.65, radius * 0.6, Math.PI * 0.9, Math.PI * 2.1);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(148, 163, 184, ' + alpha + ')';
+      ctx.fillRect(-radius * 0.5, -radius * 0.7, size * 0.16, radius * 0.4);
+      ctx.fillRect(radius * 0.35, -radius * 0.7, size * 0.16, radius * 0.4);
+
+      ctx.fillStyle = darkBody;
+      ctx.strokeStyle = neon;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, radius * 0.3, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = neon;
+      ctx.fillRect(-radius * 0.45, radius * 1.15, radius * 0.9, 3);
+    },
+
+    drawAthlete(x, y, scale, a) {
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+
+      const progress = (Math.sin(a.phase) + 1) / 2;
+      const color = a.colorPrefix + a.opacity + ')';
+      const glowColor = a.colorPrefix + (a.opacity * 1.4) + ')';
+
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (a.exercise === 'press') {
+        ctx.beginPath();
+        ctx.arc(0, -75, 9, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(0, -66);
+        ctx.lineTo(0, -25);
+        ctx.stroke();
+
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(0, -25);
+        ctx.lineTo(-14, 15);
+        ctx.lineTo(-18, 55);
+        ctx.moveTo(0, -25);
+        ctx.lineTo(14, 15);
+        ctx.lineTo(18, 55);
+        ctx.stroke();
+
+        const elbowY = -55 + (1 - progress) * 12;
+        const handY = -55 - (progress * 42);
+
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(0, -62);
+        ctx.lineTo(-18, elbowY);
+        ctx.lineTo(-20, handY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, -62);
+        ctx.lineTo(18, elbowY);
+        ctx.lineTo(20, handY);
+        ctx.stroke();
+
+        ctx.fillStyle = glowColor;
+        this.drawMiniDumbbell(ctx, -20, handY, 14);
+        this.drawMiniDumbbell(ctx, 20, handY, 14);
+
+        if (progress > 0.88) {
+          ctx.strokeStyle = glowColor;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(0, handY, 28, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+      } else if (a.exercise === 'curl') {
+        ctx.beginPath();
+        ctx.arc(0, -75, 9, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(0, -66);
+        ctx.lineTo(0, -25);
+        ctx.stroke();
+
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(0, -25);
+        ctx.lineTo(-12, 15);
+        ctx.lineTo(-14, 55);
+        ctx.moveTo(0, -25);
+        ctx.lineTo(12, 15);
+        ctx.lineTo(14, 55);
+        ctx.stroke();
+
+        const curlAngle = -Math.PI * 0.45 + (progress * Math.PI * 0.85);
+        const handLeftX = -18 + Math.cos(curlAngle) * 22;
+        const handLeftY = -42 - Math.sin(curlAngle) * 22;
+
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(0, -62);
+        ctx.lineTo(-18, -42);
+        ctx.lineTo(handLeftX, handLeftY);
+        ctx.stroke();
+
+        const oppProgress = 1 - progress;
+        const curlAngleR = -Math.PI * 0.45 + (oppProgress * Math.PI * 0.85);
+        const handRightX = 18 - Math.cos(curlAngleR) * 22;
+        const handRightY = -42 - Math.sin(curlAngleR) * 22;
+
+        ctx.beginPath();
+        ctx.moveTo(0, -62);
+        ctx.lineTo(18, -42);
+        ctx.lineTo(handRightX, handRightY);
+        ctx.stroke();
+
+        ctx.fillStyle = glowColor;
+        this.drawMiniDumbbell(ctx, handLeftX, handLeftY, 13);
+        this.drawMiniDumbbell(ctx, handRightX, handRightY, 13);
+
+      } else if (a.exercise === 'squat') {
+        const squatDrop = progress * 24;
+
+        ctx.beginPath();
+        ctx.arc(0, -75 + squatDrop, 9, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = glowColor;
+        ctx.beginPath();
+        ctx.moveTo(-32, -66 + squatDrop);
+        ctx.lineTo(32, -66 + squatDrop);
+        ctx.stroke();
+        this.drawMiniDumbbell(ctx, -32, -66 + squatDrop, 14);
+        this.drawMiniDumbbell(ctx, 32, -66 + squatDrop, 14);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(0, -66 + squatDrop);
+        ctx.lineTo(0, -25 + squatDrop);
+        ctx.stroke();
+
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(-22, -66 + squatDrop);
+        ctx.lineTo(-16, -52 + squatDrop);
+        ctx.lineTo(0, -62 + squatDrop);
+        ctx.lineTo(16, -52 + squatDrop);
+        ctx.lineTo(22, -66 + squatDrop);
+        ctx.stroke();
+
+        const kneeXSpread = 16 + progress * 14;
+        const kneeY = 15 + squatDrop * 0.4;
+        const hipY = -25 + squatDrop;
+
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(0, hipY);
+        ctx.lineTo(-kneeXSpread, kneeY);
+        ctx.lineTo(-16, 55);
+        ctx.moveTo(0, hipY);
+        ctx.lineTo(kneeXSpread, kneeY);
+        ctx.lineTo(16, 55);
+        ctx.stroke();
+
+      } else {
+        const hinge = (1 - progress);
+        const hipY = -25 + hinge * 10;
+        const headY = -75 + hinge * 22;
+        const torsoAngle = hinge * 0.55;
+
+        ctx.beginPath();
+        ctx.arc(Math.sin(torsoAngle) * 20, headY, 9, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(Math.sin(torsoAngle) * 15, headY + 8);
+        ctx.lineTo(0, hipY);
+        ctx.stroke();
+
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(0, hipY);
+        ctx.lineTo(-14, 15 + hinge * 5);
+        ctx.lineTo(-16, 55);
+        ctx.moveTo(0, hipY);
+        ctx.lineTo(14, 15 + hinge * 5);
+        ctx.lineTo(16, 55);
+        ctx.stroke();
+
+        const barY = -15 + hinge * 45;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(Math.sin(torsoAngle) * 10, headY + 12);
+        ctx.lineTo(-16, barY);
+        ctx.moveTo(Math.sin(torsoAngle) * 10, headY + 12);
+        ctx.lineTo(16, barY);
+        ctx.stroke();
+
+        ctx.strokeStyle = glowColor;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(-34, barY);
+        ctx.lineTo(34, barY);
+        ctx.stroke();
+        this.drawMiniDumbbell(ctx, -34, barY, 15);
+        this.drawMiniDumbbell(ctx, 34, barY, 15);
+      }
+
+      ctx.restore();
+    },
+
+    drawMiniDumbbell(ctx, x, y, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillRect(-size / 2, -2, size, 4);
+      ctx.fillRect(-size / 2 - 2, -size * 0.45, 4, size * 0.9);
+      ctx.fillRect(size / 2 - 2, -size * 0.45, 4, size * 0.9);
+      ctx.restore();
     },
   
     /**
@@ -3889,11 +4361,68 @@
    * FITQUEST NAVIGATION & 3D SPATIAL SCREEN ROUTER
    * Seamless transitions between application views, hash route syncing, and mobile bottom bar management
    */
-  
-  
-  
-  
-  
+
+  const PageTransition = {
+    overlay: null,
+    labelEl: null,
+    statusEl: null,
+    isTransitioning: false,
+    titles: {
+      'dashboard': 'Home Dashboard',
+      'height': 'Height & Posture Hub',
+      'library': 'Exercise Library',
+      'quests': 'Daily Quests',
+      'diet': 'Nutrition & Diet',
+      'achievements': 'Trophies & Badges',
+      'progress': 'Progress Analytics',
+      'profile': 'Athlete Profile',
+      'auth': 'Athlete Portal',
+      'landing': 'Welcome to FitQuest',
+      'onboarding': 'Fitness Setup',
+      'active-runner': 'Active Workout Session'
+    },
+
+    init() {
+      this.overlay = document.getElementById('page-transition-overlay');
+      this.labelEl = document.getElementById('transition-target-label');
+      this.statusEl = document.getElementById('transition-status-text');
+    },
+
+    play(targetScreenKey, onSwitchCallback) {
+      if (!this.overlay) this.init();
+      if (!this.overlay) {
+        if (onSwitchCallback) onSwitchCallback();
+        return;
+      }
+
+      const shortKey = targetScreenKey.replace('screen-', '');
+      const title = this.titles[shortKey] || 'FitQuest Arena';
+
+      if (this.labelEl) this.labelEl.textContent = title.toUpperCase();
+      if (this.statusEl) this.statusEl.textContent = `LIFTING TO ${title.toUpperCase()}...`;
+
+      // Force restart animation keyframes
+      this.overlay.classList.remove('active', 'animate-in', 'animate-out');
+      void this.overlay.offsetWidth; // Trigger reflow
+      this.overlay.classList.add('active', 'animate-in');
+      this.isTransitioning = true;
+
+      // Mid-lift switch: swap screen contents behind the overlay
+      setTimeout(() => {
+        if (onSwitchCallback) onSwitchCallback();
+      }, 750);
+
+      // Complete overhead lockout & smoothly open destination screen
+      setTimeout(() => {
+        this.overlay.classList.add('animate-out');
+        setTimeout(() => {
+          this.overlay.classList.remove('active', 'animate-in', 'animate-out');
+          this.isTransitioning = false;
+        }, 350);
+      }, 1450);
+    }
+  };
+
   const Navigation = {
     currentScreenId: 'screen-landing',
     screens: [
@@ -3910,27 +4439,29 @@
       'screen-progress',
       'screen-profile'
     ],
-  
+
     init() {
+      PageTransition.init();
+
       // Bind all data-nav-target elements
       document.addEventListener('click', (e) => {
         const trigger = e.target.closest('[data-nav]');
         if (!trigger) return;
-  
+
         e.preventDefault();
         const targetScreen = trigger.dataset.nav;
         this.navigateTo(targetScreen);
       });
-  
+
       // Hash change routing
       window.addEventListener('hashchange', () => {
         const hash = window.location.hash.replace('#', '');
         if (hash && this.screens.includes(`screen-${hash}`)) {
-          this.showScreen(`screen-${hash}`, false);
+          this.showScreen(`screen-${hash}`, false, true);
         }
       });
     },
-  
+
     /**
      * Main transition function
      */
@@ -3938,98 +4469,106 @@
       if (screenKey === 'demo') {
         Sound.playClick();
         Auth.loginDemo();
-        this.showScreen('screen-dashboard', true);
+        this.showScreen('screen-dashboard', true, true);
         return;
       }
-  
+
       if (screenKey === 'signup') {
         Sound.playClick();
-        this.showScreen('screen-auth', true);
+        this.showScreen('screen-auth', true, true);
         const loginWrap = document.getElementById('auth-login-wrap');
         const signupWrap = document.getElementById('auth-signup-wrap');
         if (loginWrap) loginWrap.style.display = 'none';
         if (signupWrap) signupWrap.style.display = 'block';
         return;
       }
-  
+
       if (screenKey === 'login') {
         Sound.playClick();
-        this.showScreen('screen-auth', true);
+        this.showScreen('screen-auth', true, true);
         const loginWrap = document.getElementById('auth-login-wrap');
         const signupWrap = document.getElementById('auth-signup-wrap');
         if (signupWrap) signupWrap.style.display = 'none';
         if (loginWrap) loginWrap.style.display = 'block';
         return;
       }
-  
+
       const screenId = screenKey.startsWith('screen-') ? screenKey : `screen-${screenKey}`;
       if (!this.screens.includes(screenId)) return;
-  
+
       // Route guards
       if (this.requiresAuth(screenId) && !AppState.isLoggedIn()) {
-        this.showScreen('screen-auth', true);
+        this.showScreen('screen-auth', true, true);
         return;
       }
-  
+
       Sound.playClick();
-      this.showScreen(screenId, true);
+      this.showScreen(screenId, true, true);
     },
-  
+
     requiresAuth(screenId) {
       const publicScreens = ['screen-landing', 'screen-auth', 'screen-onboarding', 'screen-library', 'screen-diet', 'screen-height'];
       return !publicScreens.includes(screenId);
     },
-  
-    showScreen(targetId, updateHash = true) {
+
+    showScreen(targetId, updateHash = true, animate = true) {
       const targetEl = document.getElementById(targetId);
       if (!targetEl) return;
-  
-      // Remove active from current screens
-      document.querySelectorAll('.app-screen').forEach(scr => {
-        scr.classList.remove('active');
-      });
-  
-      // Activate target
-      targetEl.classList.add('active');
-      this.currentScreenId = targetId;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-  
-      if (updateHash) {
-        const shortRoute = targetId.replace('screen-', '');
-        history.pushState(null, '', `#${shortRoute}`);
+
+      const performScreenSwitch = () => {
+        // Remove active from current screens
+        document.querySelectorAll('.app-screen').forEach(scr => {
+          scr.classList.remove('active');
+        });
+
+        // Activate target
+        targetEl.classList.add('active');
+        this.currentScreenId = targetId;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        if (updateHash) {
+          const shortRoute = targetId.replace('screen-', '');
+          history.pushState(null, '', `#${shortRoute}`);
+        }
+
+        // Sync Navigation Bars
+        this.syncNavLinks(targetId);
+
+        // Trigger custom route event
+        window.dispatchEvent(new CustomEvent('fitquest:screenChanged', { detail: { screenId: targetId } }));
+      };
+
+      if (animate) {
+        PageTransition.play(targetId, performScreenSwitch);
+      } else {
+        performScreenSwitch();
       }
-  
-      // Sync Navigation Bars
-      this.syncNavLinks(targetId);
-  
-      // Trigger custom route event
-      window.dispatchEvent(new CustomEvent('fitquest:screenChanged', { detail: { screenId: targetId } }));
     },
-  
+
     syncNavLinks(screenId) {
       const route = screenId.replace('screen-', '');
-  
+
       // Desktop header links
       document.querySelectorAll('.desktop-nav .nav-link').forEach(link => {
         const target = link.dataset.nav;
         link.classList.toggle('active', target === route || target === screenId);
       });
-  
+
       // Mobile bottom nav links
       document.querySelectorAll('.bottom-nav .bottom-nav-item').forEach(item => {
         const target = item.dataset.nav;
         item.classList.toggle('active', target === route || target === screenId);
       });
-  
+
       // Header visibility on landing or onboarding
       const header = document.querySelector('.app-header');
       const bottomNav = document.querySelector('.bottom-nav');
-  
+
       if (header) {
         const hideHeader = screenId === 'screen-active-runner';
         header.style.display = hideHeader ? 'none' : 'flex';
       }
-  
+
       if (bottomNav) {
         const hideBottom = screenId === 'screen-landing' || screenId === 'screen-auth' || screenId === 'screen-onboarding' || screenId === 'screen-active-runner';
         bottomNav.style.display = hideBottom ? 'none' : '';
